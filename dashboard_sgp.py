@@ -473,6 +473,7 @@ elif selected == "Gestione Commesse":
                              st.success("Cartelle ricreate!")
                         
                         if col_btn_edit[3].form_submit_button("🗑️ Elimina"):
+                            pass
                             # ... (Tuo codice attuale per eliminazione)
             with tab_mass:
                 st.write("Incolla qui l'elenco delle cartelle copiate dal Finder del Mac.")
@@ -689,7 +690,7 @@ elif selected == "Pianificazione":
                 # Mostriamo comunque la griglia vuota pronta
                 df_vuoto = pd.DataFrame(index=["Cristiano", "Stefano", "Giuditta", "Gianluca"], columns=all_cols_fmt).fillna("")
                 st.dataframe(df_vuoto, use_container_width=True)
-# ==========================================
+        # ==========================================
         # TAB 3: LISTA E NOTE OPERATIVE
         # ==========================================
         with tab_list:
@@ -974,9 +975,9 @@ elif selected == "Progettazione":
                     st.session_state.df_prog = fetch_progettazione(); st.rerun()
                 else: st.warning("⚠️ Seleziona una commessa specifica (non 'Tutti') prima di aggiungere un task.")
 
-   with col_d2:
-        st.subheader("✏️ Gestione Documento")
-        if not df_f.empty:
+    with col_d2:
+         st.subheader("✏️ Gestione Documento")
+         if not df_f.empty:
             s_id = st.selectbox("Scegli task da gestire:", df_f['ID'].tolist(), format_func=lambda x: df_f[df_f['ID']==x]['Documento'].values[0])
             r_d = df_f[df_f['ID'] == s_id].iloc[0]
             
