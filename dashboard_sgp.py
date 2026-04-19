@@ -269,9 +269,9 @@ def fetch_progettazione():
         return pd.DataFrame(columns=cols)
 
 # --- INIZIALIZZAZIONE SESSIONE (FIX ERRORI ATTRIBUTEERROR) ---
-if "df_comm" not in st.session_state: st.session_state.df_comm = fetch_commesse()
-if "df_sic" not in st.session_state: st.session_state.df_sic = fetch_sicurezza()
-if "df_prog" not in st.session_state: st.session_state.df_prog = fetch_progettazione()
+if "df_comm" not in st.session_state: st.session_state.df_comm = None
+if "df_sic" not in st.session_state: st.session_state.df_sic = None
+if "df_prog" not in st.session_state: st.session_state.df_prog = None
 if "df_timesheet" not in st.session_state: st.session_state.df_timesheet = None
 if "df_plan" not in st.session_state: st.session_state.df_plan = None
 if "admin_auth" not in st.session_state: st.session_state.admin_auth = False
@@ -316,6 +316,13 @@ elif selected == "Contabilità":
         st.warning("Nessuna commessa trovata per generare le statistiche contabili.")
 
 elif selected == "Gestione Commesse":
+    
+# --- INSERISCI SOLO QUESTE 3 RIGHE QUI ---
+    if st.session_state.df_comm is None:
+        with st.spinner("Caricamento dati Commesse..."):
+            st.session_state.df_comm = fetch_commesse()
+    # -----------------------------------------
+
     if True: # Lascia questo if True, serve per mantenere l'allineamento corretto!
    
         col_logo, col_testo = st.columns([0.6, 9.4])
@@ -439,6 +446,11 @@ elif selected == "Gestione Commesse":
 # 2. ANALISI ORE
 # ==========================================
 elif selected == "Analisi Ore":
+
+if st.session_state.df_timesheet is None:
+        with st.spinner("Caricamento dati Ore..."):
+            st.session_state.df_timesheet = fetch_timesheet()
+    
     st.header("⏱️ Controllo Ore Collaboratori")
     
     if st.button("🔄 Scarica Ore da SharePoint"): 
@@ -504,6 +516,9 @@ elif selected == "Analisi Ore":
 # 3. PIANIFICAZIONE
 # ==========================================
 elif selected == "Pianificazione":
+    if st.session_state.df_timesheet is None:
+        with st.spinner("Caricamento dati Ore..."):
+            st.session_state.df_timesheet = fetch_timesheet()
     st.header("📅 Pianificazione Team")
     
     # Preparo la lista delle commesse attive per la tendina
@@ -643,6 +658,9 @@ elif selected == "Pianificazione":
 # 4. LOGICA PAGINA: SICUREZZA CANTIERI (FIGLI)
 # ==========================================
 elif selected == "Sicurezza Cantieri":
+  if st.session_state.df_sic is None:
+        with st.spinner("Caricamento dati Sicurezza..."):
+            st.session_state.df_sic = fetch_sicurezza()  
     st.header("Gestione Sicurezza Cantieri 🏗️")
     if st.button("🔄 Sincronizza Cantieri Sicurezza") or st.session_state.df_sic is None: 
         with st.spinner("Scaricamento dati da SharePoint..."):
@@ -822,6 +840,9 @@ elif selected == "Sicurezza Cantieri":
 # 5. LOGICA PAGINA: PROGETTAZIONE 📐
 # ==========================================
 elif selected == "Progettazione":
+    if st.session_state.df_prog is None:
+        with st.spinner("Caricamento Checklist..."):
+            st.session_state.df_prog = fetch_progettazione()
     st.header("📐 Checklist Progettazione Documentale")
     if st.button("🔄 Aggiorna Lista") or st.session_state.df_prog is None: 
         with st.spinner("Scaricamento dati..."):
