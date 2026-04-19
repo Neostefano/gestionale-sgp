@@ -68,13 +68,15 @@ if not st.session_state.authenticated:
 
 # --- 3. CONFIGURAZIONE MENU IN BASE AL RUOLO ---
 # Se sei Admin vedi tutto, se sei User togliamo le voci sensibili
+
 if st.session_state.role == "admin":
-    menu_options = ["Home", "Analisi Ore", "Pianificazione", "Sicurezza", "Contabilità", "Progettazione"]
+    # Nomi esatti per far funzionare i link
+    menu_options = ["Gestione Commesse", "Analisi Ore", "Pianificazione", "Sicurezza Cantieri", "Contabilità", "Progettazione"]
     menu_icons = ["house", "clock", "calendar", "shield-lock", "currency-euro", "pencil"]
 else:
-    # Cristiano e Giuditta non vedono "Contabilità" e "Analisi Ore" (se contiene dati sensibili)
-    menu_options = ["Home", "Pianificazione", "Sicurezza", "Progettazione"]
-    menu_icons = ["house", "calendar", "shield-lock", "pencil"]
+    # Cristiano e Giuditta vedono solo queste
+    menu_options = ["Pianificazione", "Sicurezza Cantieri", "Progettazione"]
+    menu_icons = ["calendar", "shield-lock", "pencil"]
 
 # Qui inserisci il tuo componente menu (es. option_menu)
 with st.sidebar:
@@ -86,14 +88,6 @@ with st.sidebar:
         menu_icon="cast", 
         default_index=0
     )
-
-# --- 4. PROTEZIONE DELLE PAGINE ---
-if selected == "Contabilità":
-    if st.session_state.role == "admin":
-        st.title("Sezione Contabile (Riservata)")
-        # Inserisci qui il tuo codice per i costi
-    else:
-        st.error("Non hai i permessi per visualizzare questa sezione.")
 
 # ... continua con le altre sezioni ...
 # ==========================================
@@ -286,17 +280,14 @@ if "admin_auth" not in st.session_state: st.session_state.admin_auth = False
 # ==========================================
 # 1. LOGICA PAGINA: GESTIONE COMMESSE (PADRE)
 # ==========================================
-if selected == "Gestione Commesse":
-    if not st.session_state.admin_auth:
-        st.header("🔐 Accesso Riservato")
-        pwd = st.text_input("Password Amministratore", type="password")
-        if st.button("Sblocca Dashboard"):
-            if pwd == PASSWORD_ADMIN:
-                st.session_state.admin_auth = True
-                st.rerun()
-            else: 
-                st.error("❌ Password errata.")
-    else:
+
+if selected == "Contabilità":
+    st.title("💶 Sezione Contabile (Riservata)")
+    st.info("Qui andrà inserita la tabella dei costi e fatturazione.")
+
+elif selected == "Gestione Commesse":
+    if True: # Lascia questo if True, serve per mantenere l'allineamento corretto!
+   
         col_logo, col_testo = st.columns([0.6, 9.4])
         with col_logo:
             try: st.image("IMG_0002.jpeg", width=55)
