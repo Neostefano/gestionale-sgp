@@ -80,7 +80,7 @@ else:
 
 # Qui inserisci il tuo componente menu (es. option_menu)
 with st.sidebar:
-    st.image("IMG_0002.jpeg", width=200)
+    st.image("IMG_0002.jpeg", use_container_width=True)
     selected = option_menu(
         "Menu SGP", 
         menu_options, 
@@ -281,9 +281,39 @@ if "admin_auth" not in st.session_state: st.session_state.admin_auth = False
 # 1. LOGICA PAGINA: GESTIONE COMMESSE (PADRE)
 # ==========================================
 
-if selected == "Contabilità":
-    st.title("💶 Sezione Contabile (Riservata)")
-    st.info("Qui andrà inserita la tabella dei costi e fatturazione.")
+elif selected == "Contabilità":
+    st.header("💶 Cruscotto Contabile (Overview)")
+    
+    # Recuperiamo i dati delle commesse se esistono
+    if st.session_state.df_comm is not None and not st.session_state.df_comm.empty:
+        df_c = st.session_state.df_comm
+        
+        # Facciamo i calcoli dei totali in base allo stato di fatturazione
+        tot_da_fatturare = df_c[df_c['Fatturazione'] == 'Da Fatturare']['Importo Totale'].sum()
+        tot_in_corso = df_c[df_c['Fatturazione'] == 'In Corso']['Importo Totale'].sum()
+        tot_saldato = df_c[df_c['Fatturazione'] == 'Saldata']['Importo Totale'].sum()
+        
+        # Disegniamo i tre box
+        c1, c2, c3 = st.columns(3)
+        c1.metric("🔴 Da Fatturare", f"€ {tot_da_fatturare:,.2f}")
+        c2.metric("🟡 In Corso", f"€ {tot_in_corso:,.2f}")
+        c3.metric("🟢 Saldato", f"€ {tot_saldato:,.2f}")
+        
+        st.markdown("---")
+        
+        # Disegniamo un grafico a torta
+        df_pie = df_c.groupby('Fatturazione')['Importo Totale'].sum().reset_index()
+        # Mostriamo il grafico solo se c'è almeno un importo maggiore di zero
+        if not df_pie.empty and df_pie['Importo Totale'].sum() > 0:
+            fig = px.pie(df_pie, names='Fatturazione', values='Importo Totale', 
+                         title="Ripartizione Budget per Stato Fatturazione",
+                         color='Fatturazione',
+                         color_discrete_map={'Da Fatturare':'#ef476f', 'In Corso':'#ffd166', 'Saldata':'#06d6a0'})
+            st.plotly_chart(fig, use_container_width=True)
+        else:
+            st.info("Compila il campo 'Importo Totale' nelle commesse per vedere il grafico.")
+    else:
+        st.warning("Nessuna commessa trovata per generare le statistiche contabili.")
 
 elif selected == "Gestione Commesse":
     if True: # Lascia questo if True, serve per mantenere l'allineamento corretto!
@@ -293,7 +323,7 @@ elif selected == "Gestione Commesse":
             try: st.image("IMG_0002.jpeg", width=55)
             except: pass
         with col_testo: 
-            st.header("Gestione Commesse SGP (Livello Padre)")
+            st.header("Gestione Commesse SGP")
             
         if st.button("🔄 Sincronizza con SharePoint"): 
             with st.spinner("Aggiornamento dati in corso..."):
