@@ -282,24 +282,6 @@ if "df_timesheet" not in st.session_state: st.session_state.df_timesheet = None
 if "df_plan" not in st.session_state: st.session_state.df_plan = None
 if "admin_auth" not in st.session_state: st.session_state.admin_auth = False
 
-# --- 2. NAVIGAZIONE LATERALE ---
-with st.sidebar:
-    try: st.image("IMG_0002.jpeg", use_container_width=True)
-    except Exception: st.title("⚙️ SGP Consulting")
-    st.markdown("<br>", unsafe_allow_html=True)
-    selected = option_menu(
-        menu_title=None, 
-        options=["Gestione Commesse", "Analisi Ore", "Pianificazione", "Sicurezza Cantieri", "Progettazione"], 
-        icons=["shield-lock", "clock", "calendar-check", "cone-striped", "rulers"], 
-        default_index=0, 
-        styles={
-            "container": {"padding": "5!important", "background-color": "transparent"}, 
-            "icon": {"color": "#00AEEF", "font-size": "20px"}, 
-            "nav-link": {"font-size": "16px", "text-align": "left", "margin":"0px", "--hover-color": "#e0fbfc"}, 
-            "nav-link-selected": {"background-color": "#00AEEF", "color": "white", "font-weight": "bold"}
-        }
-    )
-    st.markdown("---")
 
 # ==========================================
 # 1. LOGICA PAGINA: GESTIONE COMMESSE (PADRE)
