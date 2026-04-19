@@ -134,6 +134,30 @@ def crea_cartelle_figlio(cartella_madre, cartella_figlio):
         steps.append({"parent": f"root:/Clienti/{cartella_madre}/Cantieri/{cartella_figlio}", "name": sub})
     return esegui_creazione_cartelle(headers, steps)
 
+def rinomina_cartella_madre(vecchio_nome, nuovo_nome):
+    try:
+        token = get_ms_token()
+        headers = {"Authorization": f"Bearer {token}", "Content-Type": "application/json"}
+        # 1. Recuperiamo gli ID necessari
+        url_sito = f"https://graph.microsoft.com/v1.0/sites/{SITE_HOSTNAME}:{SITE_PATH}"
+        sid = requests.get(url_sito, headers=headers).json().get('id')
+        did = requests.get(f"https://graph.microsoft.com/v1.0/sites/{sid}/drive", headers=headers).json().get('id')
+        
+        # 2. Troviamo l'ID della cartella attuale usando il vecchio nome
+        search_url = f"https://graph.microsoft.com/v1.0/drives/{did}/root:/Clienti/{vecchio_nome}"
+        item_res = requests.get(search_url, headers=headers).json()
+        folder_id = item_res.get('id')
+        
+        if folder_id:
+            # 3. Eseguiamo la rinomina (PATCH)
+            patch_url = f"https://graph.microsoft.com/v1.0/drives/{did}/items/{folder_id}"
+            res = requests.patch(patch_url, headers=headers, json={"name": nuovo_nome})
+            return res.status_code == 200
+        return False
+    except Exception as e:
+        st.error(f"Errore rinomina cartella: {e}")
+        return False
+
 # --- FUNZIONI DI LETTURA DATI (FETCH) ---
 
 def fetch_timesheet():
@@ -405,28 +429,51 @@ elif selected == "Gestione Commesse":
             with tab_edit:
                 opzioni_c = dict(zip(df_c['ID'], df_c['Codice'] + " - " + df_c['Descrizione']))
                 sel_c = st.selectbox("Seleziona commessa:", [""] + list(opzioni_c.keys()), format_func=lambda x: "Scegli..." if x == "" else opzioni_c[x])
+                
                 if sel_c != "":
                     r = df_c[df_c['ID'] == sel_c].iloc[0]
-                    with st.form("edit_comm"):
+                    with st.form("edit_comm_full"):
+                        # Nuovo campo per modificare la Descrizione
+                        nuova_desc = st.text_input("Modifica Descrizione Nome:", value=r['Descrizione'])
+                        
                         ce1, ce2, ce3 = st.columns(3)
                         es = ce1.selectbox("Stato", ["Attiva", "Chiusa", "Sospesa"], index=["Attiva", "Chiusa", "Sospesa"].index(r['Stato']))
                         ef = ce2.selectbox("Fatturazione", ["Da Fatturare", "In Corso", "Saldata"], index=["Da Fatturare", "In Corso", "Saldata"].index(r['Fatturazione']))
                         ea = ce3.slider("Avanzamento (%)", 0, 100, int(r['Avanzamento %']))
-                        b1, b2, b3 = st.columns(3)
-                        if b1.form_submit_button("🔄 Aggiorna Dati"):
+                        
+                        st.markdown("---")
+                        col_btn_edit = st.columns([1, 1, 1, 1]) # Aggiungiamo una colonna per il nuovo tasto
+                        
+                        # TASTO 1: Aggiorna solo i dati (SharePoint List)
+                        if col_btn_edit[0].form_submit_button("📝 Aggiorna Dati"):
                             h = {"Authorization": f"Bearer {get_ms_token()}", "Content-Type": "application/json"}
                             sid = requests.get(f"https://graph.microsoft.com/v1.0/sites/sgpconsultingstp-my.sharepoint.com:/personal/{PERCORSO_PERSONALE}", headers=h).json()["id"]
-                            requests.patch(f"https://graph.microsoft.com/v1.0/sites/{sid}/lists/{LISTA_COMMESSE}/items/{sel_c}", headers=h, json={"fields": {"Stato": es, "Stato_Fatturazione": ef, "Avanzamento": ea}})
+                            requests.patch(f"https://graph.microsoft.com/v1.0/sites/{sid}/lists/{LISTA_COMMESSE}/items/{sel_c}", headers=h, 
+                                           json={"fields": {"Descrizione": nuova_desc, "Stato": es, "Stato_Fatturazione": ef, "Avanzamento": ea}})
                             st.success("Dati aggiornati!"); st.session_state.df_comm = fetch_commesse(); st.rerun()
-                        if b2.form_submit_button("📁 Crea Cartelle (Retroattivo)", type="primary"):
-                            crea_cartelle_madre(r['Codice'], r['Descrizione'])
-                            st.success("Cartelle generate!"); 
-                        if b3.form_submit_button("🗑️ Elimina"):
-                            h = {"Authorization": f"Bearer {get_ms_token()}"}
-                            sid = requests.get(f"https://graph.microsoft.com/v1.0/sites/sgpconsultingstp-my.sharepoint.com:/personal/{PERCORSO_PERSONALE}", headers=h).json()["id"]
-                            requests.delete(f"https://graph.microsoft.com/v1.0/sites/{sid}/lists/{LISTA_COMMESSE}/items/{sel_c}", headers=h)
-                            st.warning("Eliminata!"); st.session_state.df_comm = fetch_commesse(); st.rerun()
+                        
+                        # TASTO 2: Rinomina anche la cartella su OneDrive/SharePoint
+                        if col_btn_edit[1].form_submit_button("📁 Rinomina Cartella", type="primary"):
+                            vecchio_nome_full = f"{r['Codice']} {r['Descrizione']}".strip()
+                            nuovo_nome_full = f"{r['Codice']} {nuova_desc}".strip()
+                            
+                            with st.spinner("Rinomina cartella in corso..."):
+                                if rinomina_cartella_madre(vecchio_nome_full, nuovo_nome_full):
+                                    # Se la rinomina cartella riesce, aggiorniamo anche il database SharePoint
+                                    h = {"Authorization": f"Bearer {get_ms_token()}", "Content-Type": "application/json"}
+                                    sid = requests.get(f"https://graph.microsoft.com/v1.0/sites/sgpconsultingstp-my.sharepoint.com:/personal/{PERCORSO_PERSONALE}", headers=h).json()["id"]
+                                    requests.patch(f"https://graph.microsoft.com/v1.0/sites/{sid}/lists/{LISTA_COMMESSE}/items/{sel_c}", headers=h, json={"fields": {"Descrizione": nuova_desc}})
+                                    st.success("Cartella e Dati rinominati con successo!"); st.session_state.df_comm = fetch_commesse(); st.rerun()
+                                else:
+                                    st.error("Impossibile trovare la vecchia cartella o errore di permessi.")
 
+                        # TASTO 3 e 4: (Elimina e Crea Cartelle già esistenti...)
+                        if col_btn_edit[2].form_submit_button("📂 Rigenera Sottocartelle"):
+                             crea_cartelle_madre(r['Codice'], nuova_desc)
+                             st.success("Cartelle ricreate!")
+                        
+                        if col_btn_edit[3].form_submit_button("🗑️ Elimina"):
+                            # ... (Tuo codice attuale per eliminazione)
             with tab_mass:
                 st.write("Incolla qui l'elenco delle cartelle copiate dal Finder del Mac.")
                 txt_mass = st.text_area("Elenco (es: 25_001_STP Progetto...):", height=200)
@@ -642,16 +689,45 @@ elif selected == "Pianificazione":
                 # Mostriamo comunque la griglia vuota pronta
                 df_vuoto = pd.DataFrame(index=["Cristiano", "Stefano", "Giuditta", "Gianluca"], columns=all_cols_fmt).fillna("")
                 st.dataframe(df_vuoto, use_container_width=True)
-
-        # ==========================================
+# ==========================================
         # TAB 3: LISTA E NOTE OPERATIVE
         # ==========================================
         with tab_list:
              st.dataframe(df_p.drop(columns=['ID'], errors='ignore').sort_values(by="Giorno", ascending=False), use_container_width=True)
-             
+
+        # --- ⬇️ INCOLLA IL NUOVO BLOCCO ESATTAMENTE QUI ⬇️ ---
+        st.markdown("---")
+        st.subheader("✏️ Gestione / Elimina Incarichi")
+        if df_p is not None and not df_p.empty:
+            # Creiamo una lista per scegliere l'incarico da gestire
+            opzioni_p = dict(zip(df_p['ID'], df_p['Giorno'].dt.strftime('%d/%m') + " - " + df_p['Collaboratore'] + ": " + df_p['Cantiere']))
+            sel_p = st.selectbox("Seleziona incarico da modificare o eliminare:", [""] + list(opzioni_p.keys()), format_func=lambda x: "Scegli..." if x == "" else opzioni_p[x])
+            
+            if sel_p != "":
+                r_p = df_p[df_p['ID'] == sel_p].iloc[0]
+                with st.form("edit_plan"):
+                    c_ep1, c_ep2 = st.columns(2)
+                    nuova_data = c_ep1.date_input("Sposta Data:", r_p['Giorno'])
+                    nuove_note = c_ep2.text_area("Modifica Note/Istruzioni:", r_p['Istruzioni'])
+                    
+                    col_btn_p = st.columns([1, 1, 3])
+                    if col_btn_p[0].form_submit_button("🔄 Aggiorna"):
+                        h = {"Authorization": f"Bearer {get_ms_token()}", "Content-Type": "application/json"}
+                        sid = requests.get(f"https://graph.microsoft.com/v1.0/sites/sgpconsultingstp-my.sharepoint.com:/personal/{PERCORSO_PERSONALE}", headers=h).json()["id"]
+                        requests.patch(f"https://graph.microsoft.com/v1.0/sites/{sid}/lists/{LISTA_PIANIFICAZIONE}/items/{sel_p}", headers=h, 
+                                       json={"fields": {"Data": nuova_data.strftime("%Y-%m-%d"), "Note": nuove_note}})
+                        st.success("Incarico aggiornato!"); st.session_state.df_plan = fetch_pianificazione(); st.rerun()
+                    
+                    if col_btn_p[1].form_submit_button("🗑️ Elimina", type="primary"):
+                        h = {"Authorization": f"Bearer {get_ms_token()}"}
+                        sid = requests.get(f"https://graph.microsoft.com/v1.0/sites/sgpconsultingstp-my.sharepoint.com:/personal/{PERCORSO_PERSONALE}", headers=h).json()["id"]
+                        requests.delete(f"https://graph.microsoft.com/v1.0/sites/{sid}/lists/{LISTA_PIANIFICAZIONE}/items/{sel_p}", headers=h)
+                        st.warning("Incarico rimosso!"); st.session_state.df_plan = fetch_pianificazione(); st.rerun()
+        # --- ⬆️ FINE DEL NUOVO BLOCCO ⬆️ ---
+
     else:
         st.info("ℹ️ Nessun incarico pianificato trovato nell'archivio.")
-        
+
 
 # ==========================================
 # 4. LOGICA PAGINA: SICUREZZA CANTIERI (FIGLI)
@@ -898,14 +974,27 @@ elif selected == "Progettazione":
                     st.session_state.df_prog = fetch_progettazione(); st.rerun()
                 else: st.warning("⚠️ Seleziona una commessa specifica (non 'Tutti') prima di aggiungere un task.")
 
-    with col_d2:
-        st.subheader("✏️ Aggiorna Stato")
+   with col_d2:
+        st.subheader("✏️ Gestione Documento")
         if not df_f.empty:
-            s_id = st.selectbox("Scegli task da aggiornare:", df_f['ID'].tolist(), format_func=lambda x: df_f[df_f['ID']==x]['Documento'].values[0])
-            n_st = st.selectbox("Nuovo Stato:", ["Da Fare", "Completato", "Da revisionare", "Approvato"])
-            if st.button("Salva Modifica"):
-                h = {"Authorization": f"Bearer {get_ms_token()}", "Content-Type": "application/json"}
-                sid = requests.get(f"https://graph.microsoft.com/v1.0/sites/sgpconsultingstp-my.sharepoint.com:/personal/{PERCORSO_PERSONALE}", headers=h).json()["id"]
-                requests.patch(f"https://graph.microsoft.com/v1.0/sites/{sid}/lists/{LISTA_PROGETTAZIONE}/items/{s_id}", headers=h, json={"fields": {"Stato_Doc": n_st}})
-                st.success("✅ Stato aggiornato!")
-                st.session_state.df_prog = fetch_progettazione(); st.rerun()
+            s_id = st.selectbox("Scegli task da gestire:", df_f['ID'].tolist(), format_func=lambda x: df_f[df_f['ID']==x]['Documento'].values[0])
+            r_d = df_f[df_f['ID'] == s_id].iloc[0]
+            
+            with st.form("gestione_doc"):
+                nuovo_nome_doc = st.text_input("Modifica Nome Documento:", value=r_d['Documento'])
+                n_st = st.selectbox("Nuovo Stato:", ["Da Fare", "Completato", "Da revisionare", "Approvato"], 
+                                    index=["Da Fare", "Completato", "Da revisionare", "Approvato"].index(r_d['Stato']))
+                
+                c_btn_d = st.columns(2)
+                if c_btn_d[0].form_submit_button("💾 Salva Modifiche"):
+                    h = {"Authorization": f"Bearer {get_ms_token()}", "Content-Type": "application/json"}
+                    sid = requests.get(f"https://graph.microsoft.com/v1.0/sites/sgpconsultingstp-my.sharepoint.com:/personal/{PERCORSO_PERSONALE}", headers=h).json()["id"]
+                    requests.patch(f"https://graph.microsoft.com/v1.0/sites/{sid}/lists/{LISTA_PROGETTAZIONE}/items/{s_id}", headers=h, 
+                                   json={"fields": {"Title": nuovo_nome_doc, "Stato_Doc": n_st}})
+                    st.success("Documento aggiornato!"); st.session_state.df_prog = fetch_progettazione(); st.rerun()
+                
+                if c_btn_d[1].form_submit_button("🗑️ Elimina Task"):
+                    h = {"Authorization": f"Bearer {get_ms_token()}"}
+                    sid = requests.get(f"https://graph.microsoft.com/v1.0/sites/sgpconsultingstp-my.sharepoint.com:/personal/{PERCORSO_PERSONALE}", headers=h).json()["id"]
+                    requests.delete(f"https://graph.microsoft.com/v1.0/sites/{sid}/lists/{LISTA_PROGETTAZIONE}/items/{s_id}", headers=h)
+                    st.warning("Documento eliminato!"); st.session_state.df_prog = fetch_progettazione(); st.rerun()
