@@ -20,6 +20,7 @@ LISTA_SICUREZZA = "Sicurezza"
 LISTA_PROGETTAZIONE = "Progettazione"
 
 PASSWORD_ADMIN = st.secrets["PASSWORD_ADMIN"]
+PASSWORD_USER = st.secrets["PASSWORD_USER"]
 
 st.set_page_config(page_title="SGP Consulting - Dashboard", page_icon="⚙️", layout="wide")
 
@@ -37,7 +38,64 @@ def get_ms_token():
     authority = f"https://login.microsoftonline.com/{TENANT_ID}"
     app = msal.ConfidentialClientApplication(CLIENT_ID, authority=authority, client_credential=CLIENT_SECRET)
     return app.acquire_token_for_client(scopes=["https://graph.microsoft.com/.default"]).get("access_token")
+import streamlit as st
 
+# --- 1. RECUPERO PASSWORD DAI SECRETS ---
+P_ADMIN = st.secrets["PASSWORD_ADMIN"]
+P_USER = st.secrets["PASSWORD_USER"]
+
+# --- 2. FUNZIONE DI LOGIN ---
+if "authenticated" not in st.session_state:
+    st.session_state.authenticated = False
+    st.session_state.role = None
+
+if not st.session_state.authenticated:
+    st.title("Accesso Gestionale SGP")
+    password = st.text_input("Inserisci la password di accesso", type="password")
+    
+    if st.button("Entra"):
+        if password == P_ADMIN:
+            st.session_state.authenticated = True
+            st.session_state.role = "admin"
+            st.rerun()
+        elif password == P_USER:
+            st.session_state.authenticated = True
+            st.session_state.role = "user"
+            st.rerun()
+        else:
+            st.error("Password errata")
+    st.stop() # Blocca l'esecuzione qui finché non sono loggati
+
+# --- 3. CONFIGURAZIONE MENU IN BASE AL RUOLO ---
+# Se sei Admin vedi tutto, se sei User togliamo le voci sensibili
+if st.session_state.role == "admin":
+    menu_options = ["Home", "Analisi Ore", "Pianificazione", "Sicurezza", "Contabilità", "Progettazione"]
+    menu_icons = ["house", "clock", "calendar", "shield-lock", "currency-euro", "pencil"]
+else:
+    # Cristiano e Giuditta non vedono "Contabilità" e "Analisi Ore" (se contiene dati sensibili)
+    menu_options = ["Home", "Pianificazione", "Sicurezza", "Progettazione"]
+    menu_icons = ["house", "calendar", "shield-lock", "pencil"]
+
+# Qui inserisci il tuo componente menu (es. option_menu)
+with st.sidebar:
+    st.image("IMG_0002.jpeg", width=200)
+    selected = option_menu(
+        "Menu SGP", 
+        menu_options, 
+        icons=menu_icons, 
+        menu_icon="cast", 
+        default_index=0
+    )
+
+# --- 4. PROTEZIONE DELLE PAGINE ---
+if selected == "Contabilità":
+    if st.session_state.role == "admin":
+        st.title("Sezione Contabile (Riservata)")
+        # Inserisci qui il tuo codice per i costi
+    else:
+        st.error("Non hai i permessi per visualizzare questa sezione.")
+
+# ... continua con le altre sezioni ...
 # ==========================================
 # 🪄 IL MOTORE GENERATORE DI CARTELLE
 # ==========================================
