@@ -446,8 +446,7 @@ elif selected == "Gestione Commesse":
 # 2. ANALISI ORE
 # ==========================================
 elif selected == "Analisi Ore":
-
-if st.session_state.df_timesheet is None:
+    if st.session_state.df_timesheet is None:
         with st.spinner("Caricamento dati Ore..."):
             st.session_state.df_timesheet = fetch_timesheet()
     
@@ -658,7 +657,7 @@ elif selected == "Pianificazione":
 # 4. LOGICA PAGINA: SICUREZZA CANTIERI (FIGLI)
 # ==========================================
 elif selected == "Sicurezza Cantieri":
-  if st.session_state.df_sic is None:
+    if st.session_state.df_sic is None:
         with st.spinner("Caricamento dati Sicurezza..."):
             st.session_state.df_sic = fetch_sicurezza()  
     st.header("Gestione Sicurezza Cantieri 🏗️")
