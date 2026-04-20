@@ -295,11 +295,14 @@ def fetch_progettazione():
 def genera_link_cartella(codice, descrizione):
     """Genera il link diretto alla cartella su OneDrive/SharePoint."""
     nome_completo = f"{str(codice).strip()} {str(descrizione).strip()}" if str(descrizione).strip() else str(codice).strip()
-    # Sostituiamo gli spazi con '%20' per far funzionare il link web
+    # Sostituiamo gli spazi con '%20' per il formato URL
     nome_url = nome_completo.replace(" ", "%20")
-    # Costruiamo il link base del tuo SharePoint
-    base_url = f"https://{SITE_HOSTNAME}/personal/{PERCORSO_PERSONALE}/Documents/Clienti/"
-    return f"{base_url}{nome_url}"    
+    
+    # Usiamo il dominio corretto (-my) e il formato onedrive.aspx
+    dominio_my = "sgpconsultingstp-my.sharepoint.com"
+    percorso_codificato = f"%2Fpersonal%2F{PERCORSO_PERSONALE}%2FDocuments%2FClienti%2F{nome_url}"
+    
+    return f"https://{dominio_my}/personal/{PERCORSO_PERSONALE}/_layouts/15/onedrive.aspx?id={percorso_codificato}"
 
 # --- INIZIALIZZAZIONE SESSIONE (FIX ERRORI ATTRIBUTEERROR) ---
 if "df_comm" not in st.session_state: st.session_state.df_comm = None
@@ -412,12 +415,25 @@ elif selected == "Gestione Commesse":
             m2.metric("Budget Tot. Filtrato", f"€ {df_display['Importo Totale'].sum():,.2f}")
             m3.metric("Avanzamento Medio", f"{df_display['Avanzamento %'].mean():.1f}%" if not df_display.empty else "0%")
 
-            # Mostriamo la tabella configurando la colonna come un link cliccabile
+            # Creiamo una nuova colonna con i link
+            df_display['Cartella OneDrive'] = df_display.apply(
+                lambda row: genera_link_cartella(row['Codice'], row['Descrizione']), axis=1
+            )
+
+            m1, m2, m3 = st.columns(3)
+            m1.metric("Voci in elenco", len(df_display))
+            m2.metric("Budget Tot. Filtrato", f"€ {df_display['Importo Totale'].sum():,.2f}")
+            m3.metric("Avanzamento Medio", f"{df_display['Avanzamento %'].mean():.1f}%" if not df_display.empty else "0%")
+
+            # Mostriamo la tabella con l'icona compatta
             st.dataframe(
                 df_display.drop(columns=['ID', 'Scadenza_DT', 'Anno Apertura'], errors='ignore').sort_values(by="Codice"), 
                 use_container_width=True,
                 column_config={
-                    "Cartella OneDrive": st.column_config.LinkColumn("🔗 Apri Cartella")
+                    "Cartella OneDrive": st.column_config.LinkColumn(
+                        "OneDrive", 
+                        display_text="📂 Apri"  # <-- Questo nasconde il link e mostra solo l'icona!
+                    )
                 }
             )
             
