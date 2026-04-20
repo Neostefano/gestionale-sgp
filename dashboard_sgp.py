@@ -294,20 +294,22 @@ def fetch_progettazione():
 
 import urllib.parse
 
-import urllib.parse
-
 def genera_link_cartella(codice, descrizione):
-    """Genera il link diretto alla cartella su SharePoint (Versione Italiana)."""
+    """Genera il link perfetto basato sul formato reale del tuo SharePoint."""
     nome_completo = f"{str(codice).strip()} {str(descrizione).strip()}" if str(descrizione).strip() else str(codice).strip()
     
-    # Codifichiamo il nome (trasforma gli spazi in %20)
-    nome_url = urllib.parse.quote(nome_completo)
+    # 1. Costruiamo il percorso interno (usando 'Documenti condivisi')
+    # Nota: Usiamo SITE_PATH (/sites/Server) + il percorso della libreria
+    percorso_interno = f"{SITE_PATH}/Documenti condivisi/Clienti/{nome_completo}"
     
-    # Usiamo "/Documenti/" invece dell'inglese "/Shared Documents/"
-    link_corretto = f"https://{SITE_HOSTNAME}{SITE_PATH}/Documenti/Clienti/{nome_url}"
+    # 2. Codifichiamo il percorso per l'URL (gli spazi diventano %20, ecc.)
+    # Usiamo safe='/' per mantenere le barre leggibili da SharePoint
+    percorso_codificato = urllib.parse.quote(percorso_interno, safe='/')
     
-    return link_corretto
-# --- INIZIALIZZAZIONE SESSIONE (FIX ERRORI ATTRIBUTEERROR) ---
+    # 3. Costruiamo il link finale usando il formato AllItems.aspx che hai postato
+    link_finale = f"https://{SITE_HOSTNAME}{SITE_PATH}/Documenti%20condivisi/Forms/AllItems.aspx?id={percorso_codificato}"
+    
+    return link_finale# --- INIZIALIZZAZIONE SESSIONE (FIX ERRORI ATTRIBUTEERROR) ---
 if "df_comm" not in st.session_state: st.session_state.df_comm = None
 if "df_sic" not in st.session_state: st.session_state.df_sic = None
 if "df_prog" not in st.session_state: st.session_state.df_prog = None
