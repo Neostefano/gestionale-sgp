@@ -294,21 +294,19 @@ def fetch_progettazione():
 
 import urllib.parse
 
+import urllib.parse
+
 def genera_link_cartella(codice, descrizione):
-    """Genera il link diretto alla cartella su SharePoint, mantenendo le barre intatte."""
+    """Genera il link diretto alla cartella su SharePoint (Versione Italiana)."""
     nome_completo = f"{str(codice).strip()} {str(descrizione).strip()}" if str(descrizione).strip() else str(codice).strip()
     
-    # Percorso interno su SharePoint
-    percorso_cartella = f"{SITE_PATH}/Shared Documents/Clienti/{nome_completo}"
+    # Codifichiamo il nome (trasforma gli spazi in %20)
+    nome_url = urllib.parse.quote(nome_completo)
     
-    # LA MAGIA È QUI: safe='/' dice a Python di NON toccare gli slash (/)
-    percorso_codificato = urllib.parse.quote(percorso_cartella, safe='/')
-    
-    # Costruiamo il link finale
-    link_corretto = f"https://{SITE_HOSTNAME}{SITE_PATH}/Shared%20Documents/Forms/AllItems.aspx?id={percorso_codificato}"
+    # Usiamo "/Documenti/" invece dell'inglese "/Shared Documents/"
+    link_corretto = f"https://{SITE_HOSTNAME}{SITE_PATH}/Documenti/Clienti/{nome_url}"
     
     return link_corretto
-
 # --- INIZIALIZZAZIONE SESSIONE (FIX ERRORI ATTRIBUTEERROR) ---
 if "df_comm" not in st.session_state: st.session_state.df_comm = None
 if "df_sic" not in st.session_state: st.session_state.df_sic = None
