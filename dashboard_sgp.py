@@ -293,10 +293,17 @@ def fetch_progettazione():
         return pd.DataFrame(columns=cols)
 
 def genera_link_cartella(codice, descrizione):
-    """Genera il link diretto alla cartella su OneDrive/SharePoint."""
+    """Genera il link diretto alla cartella sul sito SharePoint (Server)."""
     nome_completo = f"{str(codice).strip()} {str(descrizione).strip()}" if str(descrizione).strip() else str(codice).strip()
-    # Sostituiamo gli spazi con '%20' per il formato URL
+    
+    # Sostituiamo gli spazi con '%20' per il link web
     nome_url = nome_completo.replace(" ", "%20")
+    
+    # Puntiamo al sito aziendale "Server" (SITE_HOSTNAME e SITE_PATH)
+    # Su SharePoint la cartella "Documenti" nel link si chiama sempre "Shared%20Documents"
+    link_corretto = f"https://{SITE_HOSTNAME}{SITE_PATH}/Shared%20Documents/Clienti/{nome_url}"
+    
+    return link_corretto
     
     # Usiamo il dominio corretto (-my) e il formato onedrive.aspx
     dominio_my = "sgpconsultingstp-my.sharepoint.com"
