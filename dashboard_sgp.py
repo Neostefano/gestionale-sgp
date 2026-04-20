@@ -904,7 +904,9 @@ elif selected == "Sicurezza Cantieri":
                     es_km = ce_s3.number_input("KM", value=float(r_s.get('KM', 0.0)), step=0.1)
                     es_riunione = st.checkbox("Riunione di Coordinamento Fatta", value=bool(r_s.get('Riunione_Fatta', False)))
                     
-                    b_s1, b_s2 = st.columns(2)
+                    # Creiamo 3 colonne invece di 2 per far spazio al tasto Elimina
+                    b_s1, b_s2, b_s3 = st.columns(3)
+                    
                     if b_s1.form_submit_button("🔄 Aggiorna Dati"):
                         h = {"Authorization": f"Bearer {get_ms_token()}", "Content-Type": "application/json"}
                         sid = requests.get(f"https://graph.microsoft.com/v1.0/sites/sgpconsultingstp-my.sharepoint.com:/personal/{PERCORSO_PERSONALE}", headers=h).json()["id"]
@@ -913,7 +915,7 @@ elif selected == "Sicurezza Cantieri":
                         st.session_state.df_sic = fetch_sicurezza()
                         st.rerun()
                     
-                    if b_s2.form_submit_button("📁 Genera Cartelle (Retroattivo)", type="primary"):
+                    if b_s2.form_submit_button("📁 Genera Cartelle", type="primary"):
                         with st.spinner("Creazione in corso..."):
                             c_madre_cod = r_s['Commessa_Madre']
                             c_madre_desc = ""
@@ -925,6 +927,16 @@ elif selected == "Sicurezza Cantieri":
                             crea_cartelle_figlio(n_madre, n_figlio)
                         st.success("✅ Sottocartelle generate su SharePoint!")
 
+                    # --- NUOVO TASTO ELIMINA ---
+                    if b_s3.form_submit_button("🗑️ Elimina Cantiere"):
+                        h = {"Authorization": f"Bearer {get_ms_token()}"}
+                        sid = requests.get(f"https://graph.microsoft.com/v1.0/sites/sgpconsultingstp-my.sharepoint.com:/personal/{PERCORSO_PERSONALE}", headers=h).json()["id"]
+                        # Inviamo il comando DELETE a SharePoint
+                        requests.delete(f"https://graph.microsoft.com/v1.0/sites/{sid}/lists/{LISTA_SICUREZZA}/items/{sel_id_s}", headers=h)
+                        
+                        st.warning("🗑️ Cantiere eliminato con successo dall'archivio!")
+                        st.session_state.df_sic = fetch_sicurezza()
+                        st.rerun()
     with t_mass_s:
         st.write("Importa più cantieri associandoli a una Commessa Madre specifica.")
         madri = sorted(st.session_state.df_comm['Codice'].tolist()) if not st.session_state.df_comm.empty else []
