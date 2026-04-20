@@ -292,26 +292,22 @@ def fetch_progettazione():
     except: 
         return pd.DataFrame(columns=cols)
 
+import urllib.parse
+
 def genera_link_cartella(codice, descrizione):
-    """Genera il link diretto alla cartella sul sito SharePoint (Server)."""
+    """Genera il link diretto alla cartella forzando l'interfaccia web di SharePoint."""
     nome_completo = f"{str(codice).strip()} {str(descrizione).strip()}" if str(descrizione).strip() else str(codice).strip()
     
-    # Sostituiamo gli spazi con '%20' per il link web
-    nome_url = nome_completo.replace(" ", "%20")
+    # 1. Creiamo il percorso esatto della cartella sul server
+    percorso_cartella = f"{SITE_PATH}/Shared Documents/Clienti/{nome_completo}"
     
-    # Puntiamo al sito aziendale "Server" (SITE_HOSTNAME e SITE_PATH)
-    # Su SharePoint la cartella "Documenti" nel link si chiama sempre "Shared%20Documents"
-    link_corretto = f"https://{SITE_HOSTNAME}{SITE_PATH}/Shared%20Documents/Clienti/{nome_url}"
+    # 2. Codifichiamo il percorso in modo perfetto (trasforma gli spazi in %20, gli slash in %2F, ecc.)
+    percorso_codificato = urllib.parse.quote(percorso_cartella)
     
-    return link_corretto
+    # 3. Costruiamo il link "moderno" che apre l'interfaccia web (AllItems.aspx)
+    link_corretto = f"https://{SITE_HOSTNAME}{SITE_PATH}/Shared%20Documents/Forms/AllItems.aspx?id={percorso_codificato}"
     
-    # Usiamo il dominio corretto (-my) e il formato onedrive.aspx
-    dominio_my = "sgpconsultingstp-my.sharepoint.com"
-    percorso_codificato = f"%2Fpersonal%2F{PERCORSO_PERSONALE}%2FDocuments%2FClienti%2F{nome_url}"
-    
-    return f"https://{dominio_my}/personal/{PERCORSO_PERSONALE}/_layouts/15/onedrive.aspx?id={percorso_codificato}"
-
-# --- INIZIALIZZAZIONE SESSIONE (FIX ERRORI ATTRIBUTEERROR) ---
+    return link_corretto# --- INIZIALIZZAZIONE SESSIONE (FIX ERRORI ATTRIBUTEERROR) ---
 if "df_comm" not in st.session_state: st.session_state.df_comm = None
 if "df_sic" not in st.session_state: st.session_state.df_sic = None
 if "df_prog" not in st.session_state: st.session_state.df_prog = None
@@ -324,7 +320,7 @@ if "admin_auth" not in st.session_state: st.session_state.admin_auth = False
 # 1. LOGICA PAGINA: GESTIONE COMMESSE (PADRE)
 # ==========================================
 
-elif selected == "Contabilità":
+if selected == "Contabilità":
     st.header("💶 Cruscotto Contabile (Overview)")
     
     # Recuperiamo i dati delle commesse se esistono
