@@ -295,19 +295,21 @@ def fetch_progettazione():
 import urllib.parse
 
 def genera_link_cartella(codice, descrizione):
-    """Genera il link diretto alla cartella forzando l'interfaccia web di SharePoint."""
+    """Genera il link diretto alla cartella su SharePoint, mantenendo le barre intatte."""
     nome_completo = f"{str(codice).strip()} {str(descrizione).strip()}" if str(descrizione).strip() else str(codice).strip()
     
-    # 1. Creiamo il percorso esatto della cartella sul server
+    # Percorso interno su SharePoint
     percorso_cartella = f"{SITE_PATH}/Shared Documents/Clienti/{nome_completo}"
     
-    # 2. Codifichiamo il percorso in modo perfetto (trasforma gli spazi in %20, gli slash in %2F, ecc.)
-    percorso_codificato = urllib.parse.quote(percorso_cartella)
+    # LA MAGIA È QUI: safe='/' dice a Python di NON toccare gli slash (/)
+    percorso_codificato = urllib.parse.quote(percorso_cartella, safe='/')
     
-    # 3. Costruiamo il link "moderno" che apre l'interfaccia web (AllItems.aspx)
+    # Costruiamo il link finale
     link_corretto = f"https://{SITE_HOSTNAME}{SITE_PATH}/Shared%20Documents/Forms/AllItems.aspx?id={percorso_codificato}"
     
-    return link_corretto# --- INIZIALIZZAZIONE SESSIONE (FIX ERRORI ATTRIBUTEERROR) ---
+    return link_corretto    return link_corretto
+
+# --- INIZIALIZZAZIONE SESSIONE (FIX ERRORI ATTRIBUTEERROR) ---
 if "df_comm" not in st.session_state: st.session_state.df_comm = None
 if "df_sic" not in st.session_state: st.session_state.df_sic = None
 if "df_prog" not in st.session_state: st.session_state.df_prog = None
