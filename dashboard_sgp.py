@@ -307,7 +307,7 @@ def genera_link_cartella(codice, descrizione):
     # Costruiamo il link finale
     link_corretto = f"https://{SITE_HOSTNAME}{SITE_PATH}/Shared%20Documents/Forms/AllItems.aspx?id={percorso_codificato}"
     
-    return link_corretto    return link_corretto
+    return link_corretto
 
 # --- INIZIALIZZAZIONE SESSIONE (FIX ERRORI ATTRIBUTEERROR) ---
 if "df_comm" not in st.session_state: st.session_state.df_comm = None
