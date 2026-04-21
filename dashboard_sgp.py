@@ -632,18 +632,45 @@ elif selected == "Pianificazione":
         ragazzo = col_p1.selectbox("👤 Collaboratore:", ["Cristiano", "Stefano", "Giuditta", "Gianluca"])
         com_scelta = col_p2.selectbox("🏗️ Su quale Commessa:", lista_c_attive)
         
-        data_p = st.date_input("📆 Giorno lavorativo:", datetime.date.today())
+        # --- NUOVO INSERIMENTO DATE MULTIPLE ---
+        col_d1, col_d2 = st.columns([2, 1])
+        data_p = col_d1.date_input("📆 Periodo lavorativo (Da - A):", value=(datetime.date.today(), datetime.date.today()))
+        escludi_weekend = col_d2.checkbox("⏸️ Salta Sabato e Domenica", value=True)
+        
         note_p = st.text_area("📝 Istruzioni operative:")
         
-        if st.button("Invia Pianificazione", type="primary"):
+        if st.button("🚀 Invia Pianificazione", type="primary"):
+            # Gestione sicura del range di date
+            if isinstance(data_p, tuple):
+                if len(data_p) == 2:
+                    d_inizio, d_fine = data_p
+                elif len(data_p) == 1:
+                    d_inizio = d_fine = data_p[0]
+                else:
+                    d_inizio = d_fine = datetime.date.today()
+            else:
+                d_inizio = d_fine = data_p
+
             h = {"Authorization": f"Bearer {get_ms_token()}", "Content-Type": "application/json"}
             sid = requests.get(f"https://graph.microsoft.com/v1.0/sites/sgpconsultingstp-my.sharepoint.com:/personal/{PERCORSO_PERSONALE}", headers=h).json()["id"]
-            payload = {"fields": {"Title": ragazzo, "Commessa": com_scelta, "Data": data_p.strftime("%Y-%m-%d"), "Note": note_p}}
-            requests.post(f"https://graph.microsoft.com/v1.0/sites/{sid}/lists/{LISTA_PIANIFICAZIONE}/items", headers=h, json=payload)
-            st.success("✅ Incarico salvato correttamente!")
+            
+            with st.spinner("Generazione incarichi in corso..."):
+                # Calcoliamo quanti giorni ci sono tra inizio e fine
+                giorni_totali = (d_fine - d_inizio).days + 1
+                
+                for i in range(giorni_totali):
+                    giorno_corrente = d_inizio + datetime.timedelta(days=i)
+                    
+                    # 5 = Sabato, 6 = Domenica. Saltiamo se la spunta è attiva
+                    if escludi_weekend and giorno_corrente.weekday() >= 5:
+                        continue
+                        
+                    payload = {"fields": {"Title": ragazzo, "Commessa": com_scelta, "Data": giorno_corrente.strftime("%Y-%m-%d"), "Note": note_p}}
+                    requests.post(f"https://graph.microsoft.com/v1.0/sites/{sid}/lists/{LISTA_PIANIFICAZIONE}/items", headers=h, json=payload)
+            
+            st.success("✅ Incarichi salvati correttamente per il periodo selezionato!")
             st.session_state.df_plan = fetch_pianificazione()
             st.rerun()
-
     st.markdown("---")
     st.subheader("🗓️ Visualizzazione Impegni")
     
