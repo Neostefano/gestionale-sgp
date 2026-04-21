@@ -613,6 +613,11 @@ elif selected == "Pianificazione":
     if st.session_state.df_timesheet is None:
         with st.spinner("Caricamento dati Ore..."):
             st.session_state.df_timesheet = fetch_timesheet()
+
+    if st.session_state.df_comm is None:
+        with st.spinner("Caricamento base dati..."):
+            st.session_state.df_comm = fetch_commesse()
+            
     st.header("📅 Pianificazione Team")
     
     # Preparo la lista delle commesse attive per la tendina
@@ -783,7 +788,11 @@ elif selected == "Pianificazione":
 elif selected == "Sicurezza Cantieri":
     if st.session_state.df_sic is None:
         with st.spinner("Caricamento dati Sicurezza..."):
-            st.session_state.df_sic = fetch_sicurezza()  
+            st.session_state.df_sic = fetch_sicurezza()
+    if st.session_state.df_comm is None:
+        with st.spinner("Caricamento base dati..."):
+            st.session_state.df_comm = fetch_commesse()
+            
     st.header("Gestione Sicurezza Cantieri 🏗️")
     if st.button("🔄 Sincronizza Cantieri Sicurezza") or st.session_state.df_sic is None: 
         with st.spinner("Scaricamento dati da SharePoint..."):
@@ -978,6 +987,9 @@ elif selected == "Progettazione":
     if st.session_state.df_prog is None:
         with st.spinner("Caricamento Checklist..."):
             st.session_state.df_prog = fetch_progettazione()
+    if st.session_state.df_comm is None:
+        with st.spinner("Caricamento base dati..."):
+            st.session_state.df_comm = fetch_commesse()
     st.header("📐 Checklist Progettazione Documentale")
     if st.button("🔄 Aggiorna Lista") or st.session_state.df_prog is None: 
         with st.spinner("Scaricamento dati..."):
